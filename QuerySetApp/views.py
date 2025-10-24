@@ -26,30 +26,32 @@ from .models import Book
 # startswith, endswith	начинается/заканчивается	Article.objects.filter(title__startswith='Django')
 # isnull	проверка на NULL	Article.objects.filter(description__isnull=True)
 
+from django.shortcuts import render, redirect
+from .models import Book
+from .forms import BookForm
 
-def books_view(request):
-    expensive_books = Book.objects.filter(price__gt=2000)
-    recent_books = Book.objects.filter(year__gt=2010).order_by('year')
-    tolstoy_books = Book.objects.filter(author__icontains='Толстой')
+def books_list(request):
+   books = Book.objects.all()
+   return render(request, 'books_list.html', {'books': books})
 
-    context = {
-        'expensive_books': expensive_books,
-        'recent_books': recent_books,
-        'tolstoy_books': tolstoy_books
-    }
+def add_book(request):
+   form = BookForm(request.POST or None)
+   if form.is_valid():
+       form.save()
+       return redirect('books_list')
+   return render(request, 'add_book.html', {'form': form})
 
-    return render(request, 'books.html', context)
+def edit_book(request, id):
+    book = Book.objects.get(id=id)
+    form = BookForm(request.POST or None, instance=book)
+    if form.is_valid():
+        form.save()
+        return redirect('books_list')
+    return render(request, 'add_book.html', {'form': form})
 
-
-def search_view(request):
-    query = request.GET.get('author', '')  # получаем значение из формы
-    results = []
-
-    if query:
-        results = Book.objects.filter(author__icontains=query)  # поиск без учёта регистра
-
-    context = {
-        'query': query,
-        'results': results
-    }
-    return render(request, 'search.html', context)
+def delete_book(request, id):
+    book = Book.objects.get(id=id)
+    if request.method == 'POST':
+        book.delete()
+        return redirect('books_list')
+    return render(request, 'delete_book.html', {'book': book})
